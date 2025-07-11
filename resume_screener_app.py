@@ -1,64 +1,133 @@
+import customtkinter as ctk
+import os
 import PyPDF2
-import streamlit as st
-from typing import List, Tuple
+from tkinterdnd2 import DND_FILES, TkinterDnD
+from tkinter import filedialog, messagebox
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import csv
 
-# --- Helper Functions ---
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
 
-def extract_text_from_pdf(pdf_file) -> str:
-    """Extract text from a PDF file."""
-    reader = PyPDF2.PdfReader(pdf_file)
-    text = ""
-    for page in reader.pages:
-        if page.extract_text():
-            text += page.extract_text()
-    return text
+class ResumeScreenerApp(TkinterDnD.Tk):
+    def __init__(self):
+        super().__init__()
 
-def extract_matched_skills(resume_text: str, job_text: str) -> List[str]:
-    """Return list of matched keywords between resume and job description."""
-    job_keywords = set(job_text.lower().split())
-    resume_keywords = set(resume_text.lower().split())
-    matched = job_keywords.intersection(resume_keywords)
-    return sorted(list(matched))
+        self.title("🔎 AI Resume Screener — Powered by Y7X 💗")
+        self.geometry("750x650")
+        self.configure(bg="#000000")
 
-def score_resume(resume_text: str, job_text: str) -> float:
-    """Return similarity score between job and resume."""
-    documents = [job_text, resume_text]
-    tfidf = TfidfVectorizer().fit_transform(documents)
-    return cosine_similarity(tfidf[0:1], tfidf[1:2])[0][0]
+        self.jd_path = ""
+        self.resume_folder = ""
 
-# --- Streamlit App ---
+        self.init_ui()
 
-st.set_page_config(page_title="AI Resume Screener", layout="centered")
-st.title("🤖 AI Resume Screener")
-st.markdown("Upload a job description and multiple resumes to rank them by relevance.")
+    def init_ui(self):
+        font_title = ctk.CTkFont(size=22, weight="bold")
+        font_text = ctk.CTkFont(size=14)
 
-# Upload job description
-job_file = st.file_uploader("📄 Upload Job Description (TXT)", type=["txt"])
+        ctk.CTkLabel(self, text="🧠 AI Resume Screener", font=font_title, text_color="red", bg_color="#000000").pack(pady=10)
+        ctk.CTkLabel(self, text="Drag + Drop your JD and Resume Folder 🔥", font=font_text, text_color="white", bg_color="#000000").pack()
 
-# Upload resumes
-resume_files = st.file_uploader("📁 Upload Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
+        self.drop_jd = ctk.CTkTextbox(self, width=500, height=40, font=font_text, corner_radius=10)
+        self.drop_jd.pack(pady=10)
+        self.drop_jd.insert("1.0", "⬇️ Drop job_description.txt here")
+        self.drop_jd.drop_target_register(DND_FILES)
+        self.drop_jd.dnd_bind("<<Drop>>", self.handle_jd_drop)
 
-if st.button("🚀 Start Screening") and job_file and resume_files:
-    with st.spinner("Processing resumes..."):
-        job_text = job_file.read().decode("utf-8")
-        results: List[Tuple[str, float, List[str]]] = []
+        self.drop_resumes = ctk.CTkTextbox(self, width=500, height=40, font=font_text, corner_radius=10)
+        self.drop_resumes.pack(pady=10)
+        self.drop_resumes.insert("1.0", "📁 Drop folder with PDF resumes here")
+        self.drop_resumes.drop_target_register(DND_FILES)
+        self.drop_resumes.dnd_bind("<<Drop>>", self.handle_resume_drop)
 
-        for resume_file in resume_files:
-            resume_text = extract_text_from_pdf(resume_file)
-            score = score_resume(resume_text, job_text)
-            matched_skills = extract_matched_skills(resume_text, job_text)
-            results.append((resume_file.name, score, matched_skills))
+        ctk.CTkButton(self, text="🚀 Screen Resumes", command=self.screen_resumes, fg_color="red", hover_color="#cc0000").pack(pady=15)
+
+        self.output_textbox = ctk.CTkTextbox(self, width=700, height=280, state="disabled", corner_radius=10)
+        self.output_textbox.pack(pady=10)
+
+        self.status_label = ctk.CTkLabel(self, text="", font=ctk.CTkFont(size=12), text_color="white")
+        self.status_label.pack(pady=5)
+
+    def handle_jd_drop(self, event):
+        path = event.data.strip("{}")
+        if os.path.isfile(path) and path.endswith(".txt"):
+            self.jd_path = path
+            self.drop_jd.configure(state="normal")
+            self.drop_jd.delete("1.0", "end")
+            self.drop_jd.insert("1.0", f"✅ Loaded: {os.path.basename(path)}")
+            self.drop_jd.configure(state="disabled")
+        else:
+            messagebox.showerror("Error", "Please drop a valid .txt file.")
+
+    def handle_resume_drop(self, event):
+        path = event.data.strip("{}")
+        if os.path.isdir(path):
+            self.resume_folder = path
+            self.drop_resumes.configure(state="normal")
+            self.drop_resumes.delete("1.0", "end")
+            self.drop_resumes.insert("1.0", f"✅ Folder: {os.path.basename(path)}")
+            self.drop_resumes.configure(state="disabled")
+        else:
+            messagebox.showerror("Error", "Please drop a valid folder.")
+
+    def extract_text_from_pdf(self, path):
+        try:
+            with open(path, "rb") as f:
+                reader = PyPDF2.PdfReader(f)
+                text = ""
+                for page in reader.pages:
+                    if page.extract_text():
+                        text += page.extract_text()
+                return text
+        except Exception:
+            return ""
+
+    def extract_matched_keywords(self, resume_text, job_text):
+        job_keywords = set(job_text.lower().split())
+        resume_keywords = set(resume_text.lower().split())
+        return sorted(list(job_keywords.intersection(resume_keywords)))
+
+    def score_resume(self, resume_text, job_text):
+        documents = [job_text, resume_text]
+        tfidf = TfidfVectorizer().fit_transform(documents)
+        return cosine_similarity(tfidf[0:1], tfidf[1:2])[0][0]
+
+    def screen_resumes(self):
+        if not os.path.exists(self.jd_path) or not os.path.exists(self.resume_folder):
+            messagebox.showerror("Error", "Missing job description or resume folder.")
+            return
+
+        with open(self.jd_path, "r") as f:
+            job_text = f.read()
+
+        results = []
+        for file in os.listdir(self.resume_folder):
+            if file.endswith(".pdf"):
+                full_path = os.path.join(self.resume_folder, file)
+                resume_text = self.extract_text_from_pdf(full_path)
+                score = self.score_resume(resume_text, job_text)
+                matched = self.extract_matched_keywords(resume_text, job_text)
+                results.append((file, score, ", ".join(matched[:10])))
 
         results.sort(key=lambda x: x[1], reverse=True)
 
-    st.success("✅ Screening Complete!")
+        self.output_textbox.configure(state="normal")
+        self.output_textbox.delete("0.0", "end")
 
-    for i, (filename, score, matched_skills) in enumerate(results, 1):
-        st.markdown(f"### {i}. `{filename}` — Score: **{score:.2f}**")
-        st.markdown(f"Matched Skills: `{', '.join(matched_skills[:15]) or 'None'}`")
-        st.markdown("---")
+        for i, (fname, score, matched) in enumerate(results, 1):
+            self.output_textbox.insert("end", f"{i}. {fname} — Score: {score:.2f}\nMatched: {matched}\n\n")
 
-elif not job_file or not resume_files:
-    st.info("⬆️ Upload both a job description and at least one resume to begin.")
+        self.output_textbox.configure(state="disabled")
+
+        with open("ranking_output.csv", "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Resume", "Score", "Matched Keywords"])
+            writer.writerows(results)
+
+        self.status_label.configure(text="✅ Screening done. CSV saved!")
+
+if __name__ == "__main__":
+    app = ResumeScreenerApp()
+    app.mainloop()
