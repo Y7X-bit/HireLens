@@ -2,7 +2,7 @@ import customtkinter as ctk
 import os
 import PyPDF2
 from tkinterdnd2 import DND_FILES, TkinterDnD
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import csv
@@ -10,12 +10,12 @@ import csv
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-class ResumeScreenerApp(TkinterDnD.Tk):
+class HireLensApp(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("🔎 AI Resume Screener — Powered by Y7X 💗")
-        self.geometry("750x650")
+        self.title("HireLens")
+        self.geometry("800x700")
         self.configure(bg="#000000")
 
         self.jd_path = ""
@@ -24,31 +24,34 @@ class ResumeScreenerApp(TkinterDnD.Tk):
         self.init_ui()
 
     def init_ui(self):
-        font_title = ctk.CTkFont(size=22, weight="bold")
-        font_text = ctk.CTkFont(size=14)
+        font_title = ctk.CTkFont(size=24, weight="bold")
+        font_text = ctk.CTkFont(size=15)
 
-        ctk.CTkLabel(self, text="🧠 AI Resume Screener", font=font_title, text_color="red", bg_color="#000000").pack(pady=10)
-        ctk.CTkLabel(self, text="Drag + Drop your JD and Resume Folder 🔥", font=font_text, text_color="white", bg_color="#000000").pack()
+        ctk.CTkLabel(self, text="👓 HireLens", font=font_title, text_color="red", bg_color="#000000").pack(pady=12)
+        ctk.CTkLabel(self, text="🖤 Drag & Drop your Job Description and Resume Folder", font=font_text, text_color="white", bg_color="#000000").pack(pady=4)
 
-        self.drop_jd = ctk.CTkTextbox(self, width=500, height=40, font=font_text, corner_radius=10)
+        self.drop_jd = ctk.CTkTextbox(self, width=540, height=45, font=font_text, corner_radius=12, fg_color="#000000", text_color="white", border_width=2, border_color="red")
         self.drop_jd.pack(pady=10)
         self.drop_jd.insert("1.0", "⬇️ Drop job_description.txt here")
         self.drop_jd.drop_target_register(DND_FILES)
         self.drop_jd.dnd_bind("<<Drop>>", self.handle_jd_drop)
 
-        self.drop_resumes = ctk.CTkTextbox(self, width=500, height=40, font=font_text, corner_radius=10)
+        self.drop_resumes = ctk.CTkTextbox(self, width=540, height=45, font=font_text, corner_radius=12, fg_color="#000000", text_color="white", border_width=2, border_color="red")
         self.drop_resumes.pack(pady=10)
         self.drop_resumes.insert("1.0", "📁 Drop folder with PDF resumes here")
         self.drop_resumes.drop_target_register(DND_FILES)
         self.drop_resumes.dnd_bind("<<Drop>>", self.handle_resume_drop)
 
-        ctk.CTkButton(self, text="🚀 Screen Resumes", command=self.screen_resumes, fg_color="red", hover_color="#cc0000").pack(pady=15)
+        ctk.CTkButton(self, text="🚀 Screen Resumes", command=self.screen_resumes, fg_color="#000000", hover_color="#111111", text_color="white", corner_radius=20, border_width=2, border_color="red").pack(pady=18)
 
-        self.output_textbox = ctk.CTkTextbox(self, width=700, height=280, state="disabled", corner_radius=10)
+        self.output_textbox = ctk.CTkTextbox(self, width=740, height=290, state="disabled", corner_radius=14, fg_color="#000000", text_color="white", border_width=2, border_color="red")
         self.output_textbox.pack(pady=10)
 
-        self.status_label = ctk.CTkLabel(self, text="", font=ctk.CTkFont(size=12), text_color="white")
-        self.status_label.pack(pady=5)
+        self.status_label = ctk.CTkLabel(self, text="", font=ctk.CTkFont(size=13), text_color="white", bg_color="#000000")
+        self.status_label.pack(pady=6)
+
+        # 🔎 Powered by Y7X 💗 branding at the bottom
+        ctk.CTkLabel(self, text="🔎 Powered by Y7X 💗", font=ctk.CTkFont(size=13, weight="bold"), text_color="white", bg_color="#000000").pack(pady=6)
 
     def handle_jd_drop(self, event):
         path = event.data.strip("{}")
@@ -59,7 +62,7 @@ class ResumeScreenerApp(TkinterDnD.Tk):
             self.drop_jd.insert("1.0", f"✅ Loaded: {os.path.basename(path)}")
             self.drop_jd.configure(state="disabled")
         else:
-            messagebox.showerror("Error", "Please drop a valid .txt file.")
+            messagebox.showerror("❌ Error", "Please drop a valid .txt file.")
 
     def handle_resume_drop(self, event):
         path = event.data.strip("{}")
@@ -70,7 +73,7 @@ class ResumeScreenerApp(TkinterDnD.Tk):
             self.drop_resumes.insert("1.0", f"✅ Folder: {os.path.basename(path)}")
             self.drop_resumes.configure(state="disabled")
         else:
-            messagebox.showerror("Error", "Please drop a valid folder.")
+            messagebox.showerror("❌ Error", "Please drop a valid folder.")
 
     def extract_text_from_pdf(self, path):
         try:
@@ -96,7 +99,7 @@ class ResumeScreenerApp(TkinterDnD.Tk):
 
     def screen_resumes(self):
         if not os.path.exists(self.jd_path) or not os.path.exists(self.resume_folder):
-            messagebox.showerror("Error", "Missing job description or resume folder.")
+            messagebox.showerror("❌ Error", "Missing job description or resume folder.")
             return
 
         with open(self.jd_path, "r") as f:
@@ -126,8 +129,8 @@ class ResumeScreenerApp(TkinterDnD.Tk):
             writer.writerow(["Resume", "Score", "Matched Keywords"])
             writer.writerows(results)
 
-        self.status_label.configure(text="✅ Screening done. CSV saved!")
+        self.status_label.configure(text="✅ Screening complete. Results saved as CSV!")
 
 if __name__ == "__main__":
-    app = ResumeScreenerApp()
+    app = HireLensApp()
     app.mainloop()

@@ -1,18 +1,19 @@
-# 💼 AI Resume Screener — AMOLED Mode 🔥
+<div align="center">
+
+# 💼 HireLens
+**🧠 HireLens: Smart screening meets slick design**
 
 An offline, amoled AI resume screener that ranks PDF resumes based on how well they match a job description.  
-Powered by smart NLP scoring and drag & drop magic — built with 💗 by [Y7X](https://github.com/Y7X-bit).
+Powered by smart NLP scoring and drag & drop magic.
+Branded with 💗 by [Y7X-bit](https://github.com/Y7X-bit)
+
+<img src="assets/1.png" alt="AI Resume Screener UI" width="750">
+
+</div>
 
 ---
-## 📸 App Preview
 
-<p align="center">
-  <img src="assets/1.png" alt="AI Resume Screener UI" width="750">
-</p>
-
----
-
-## 🖤 Key Highlights
+## 🌟 Features at a Glance
 
 🖥️ **Total AMOLED UI** – zero gray, full black  
 📄 **Drag & Drop** support for job description and resume folder  
@@ -22,8 +23,12 @@ Powered by smart NLP scoring and drag & drop magic — built with 💗 by [Y7X](
 
 ---
 
-## ⚙️ How To Use
+## 🖥️ Installation
+
+> Python 3.9 or later required
 
 ```bash
-pip install customtkinter tkinterdnd2 PyPDF2 scikit-learn
-python3 main.py
+git clone https://github.com/Y7X-bit/HireLens.git
+cd HireLens
+pip install -r requirements.txt
+python HireLens.py
